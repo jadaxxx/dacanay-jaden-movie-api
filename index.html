@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Movie Collection</title>
+<style>
+  :root {
+    --blue: #007aff;
+    --bg: #f2f2f7;
+    --card: #fff;
+    --text: #1c1c1e;
+    --muted: #8e8e93;
+    --line: #e5e5ea;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    padding: 40px 16px 60px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin: 0 0 24px; }
+  h2 {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--muted); margin: 28px 8px 8px;
+  }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 8px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  input {
+    width: 100%; border: none; outline: none; background: transparent;
+    padding: 13px 0; font-size: 17px; color: var(--text);
+    border-bottom: 1px solid var(--line); font-family: inherit;
+  }
+  input:last-of-type { border-bottom: none; }
+  input::placeholder { color: var(--muted); }
+  button {
+    width: 100%; margin: 12px 0 14px; padding: 14px;
+    background: var(--blue); color: #fff; border: none; border-radius: 12px;
+    font-size: 17px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: opacity .15s;
+  }
+  button:active { opacity: .6; }
+  .ghost { background: #fff; color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,.06); margin: 14px 0 0; }
+  #msg {
+    display: none; margin: 12px 0 0; padding: 12px 16px; border-radius: 12px;
+    font-size: 15px; font-weight: 500; background: #e4f7ea; color: #248a3d;
+  }
+  #msg.error { background: #ffe8e6; color: #d70015; }
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 0; border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: none; }
+  .id {
+    flex: none; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--bg); color: var(--muted);
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .title { font-size: 17px; font-weight: 500; }
+  .meta { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .empty { padding: 20px 0; color: var(--muted); font-size: 15px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Movie Collection</h1>
+
+  <h2>Add Movie</h2>
+  <div class="card">
+    <input id="title" placeholder="Title">
+    <input id="genre" placeholder="Genre">
+    <input id="year" placeholder="Year" inputmode="numeric">
+  </div>
+  <button onclick="addMovie()">Add Movie</button>
+  <p id="msg"></p>
+
+  <h2>Movies</h2>
+  <div class="card" id="list"></div>
+  <button class="ghost" onclick="loadMovies()">Load Movies</button>
+</div>
+
+<script>
+function show(text, isError) {
+  const msg = document.getElementById("msg");
+  msg.textContent = text;
+  msg.className = isError ? "error" : "";
+  msg.style.display = "block";
+}
+
+async function loadMovies() {
+  const res = await fetch("/api/movies");
+  const movies = await res.json();
+  document.getElementById("list").innerHTML = movies.length
+    ? movies.map(m => `
+        <div class="row">
+          <div class="id">${m.id}</div>
+          <div>
+            <div class="title">${m.title}</div>
+            <div class="meta">${m.genre} &middot; ${m.year}</div>
+          </div>
+        </div>`).join("")
+    : `<div class="empty">No movies yet</div>`;
+}
+
+async function addMovie() {
+  const title = document.getElementById("title").value;
+  const genre = document.getElementById("genre").value;
+  const year = document.getElementById("year").value;
+  const res = await fetch("/api/movies", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, genre, year })
+  });
+  const data = await res.json();
+  if (!res.ok) return show(data.error, true);
+  show("Movie added successfully");
+  ["title", "genre", "year"].forEach(id => document.getElementById(id).value = "");
+  loadMovies();
+}
+
+loadMovies();
+</script>
+</body>
+</html>
